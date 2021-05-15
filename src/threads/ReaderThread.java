@@ -2,24 +2,35 @@ package threads;
 
 import java.io.IOException;
 import java.net.Socket;
+import java.util.ArrayList;
 
 import static javax.swing.JOptionPane.showMessageDialog;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import data.User;
+import data.Account;
+import data.Chat;
+import data.Chats;
+import data.Message;
+import gui.ChatScreen;
+import gui.ContactsScreen;
 import gui.LoginScreen;
 
 public class ReaderThread extends Thread
 {
     private Socket socket;
     private LoginScreen loginScreen;
+    private ContactsScreen contactsScreen;
+    private ChatScreen chatScreen;
 
-    public ReaderThread(Socket socket, LoginScreen loginScreen)
+    public ReaderThread(Socket socket, LoginScreen loginScreen, ChatScreen chatScreen, ContactsScreen contactsScreen)
     {
         this.socket = socket;
         this.loginScreen = loginScreen;
+        this.chatScreen = chatScreen;
+        this.contactsScreen = contactsScreen;
     }
 
     @Override
@@ -35,6 +46,8 @@ public class ReaderThread extends Thread
                 String input = new String(data);
                 int code = getCode(input);
 
+                System.out.println(input);
+
                 switch(code)
                 {
                     // Exception error
@@ -42,25 +55,65 @@ public class ReaderThread extends Thread
                     {
                         String error = getError(input);
                         showMessageDialog(null, error);
+                        break;
                     }
 
                     // Auth success
                     case 2:
                     {
                         getUser(input);
-                        showMessageDialog(null, "Welcome to ChatMe, " + User.get().getName());
+                        showMessageDialog(null, "Welcome to ChatMe, " + Account.get().getName());
                         loginScreen.setStatus(1);
-                        System.out.println(loginScreen.getStatus());
+                        break;
+                    }
+
+                    // Another instance running session
+                    case 3:
+                    {
+                        showMessageDialog(null, "Another app has just logged in with this account");
+                        chatScreen.setStatus(1);
+                        break;
+                    }
+
+                    // Update contact list
+                    case 4:
+                    {
+                        ArrayList<String> users = getUsers(input);
+                        String contact = chatScreen.getContact();
+                        createChats(users);
+                        contactsScreen.setOnlineUsers(users);
+                        if (contactsScreen.getOnlineUsers().contains(contact))
+                        {
+                            contactsScreen.selectChat(contact);
+                            // chatScreen.updateScreen(contact);
+                            // chatScreen.setTitle("Chat: " + Account.get().getName() + " - " + contact);
+                        }
+                        break;
+                    }
+
+                    // Receive message
+                    case 5:
+                    {
+                        Message message = getMessage(input);
+                        Chat chat = Chats.get().getChat(message.getSender());
+                        // Add message to local chat storage
+                        chat.getMessages().add(message);
+                        // Chat is actually active
+                        if (chatScreen.getContact() != null && chatScreen.getContact().equals(message.getSender()))
+                        {
+                            chatScreen.updateScreen(message.getSender());
+                        }
+                        break;
                     }
                 }
             } 
             catch (IOException e) 
             {
-
+                showMessageDialog(null, e.getMessage());
             } 
             catch (JSONException e) 
             {
-
+                showMessageDialog(null, e.getMessage());
             }
         }
     }
@@ -85,8 +138,55 @@ public class ReaderThread extends Thread
         String name = json.getString("name");
         String pass = json.getString("pass");
 
-        User.get().setId(id);
-        User.get().setName(name);
-        User.get().setPass(pass);
+        Account.get().setId(id);
+        Account.get().setName(name);
+        Account.get().setPass(pass);
+    }
+
+    private ArrayList<String> getUsers(String input) throws JSONException
+    {
+        ArrayList<String> users = new ArrayList<>();
+
+        JSONObject object = new JSONObject(input);
+        String arrayString = object.getString("array");
+        JSONArray array = new JSONArray(arrayString);
+        for (int i = 0; i < array.length(); i++)
+        {
+            JSONObject userJson = array.getJSONObject(i);
+            users.add(userJson.getString("name"));
+        }
+
+        return users;
+    }
+
+    private Message getMessage(String input) throws JSONException
+    {
+        JSONObject json = new JSONObject(input);
+        String content = json.getString("content");
+        String sender = json.getString("sender");
+        String receiver = json.getString("receiver");
+        Message message = new Message();
+        message.setContent(content);
+        message.setSender(sender);
+        message.setReceiver(receiver);
+        return message;
+    }
+
+    private void createChat(String contact)
+    {
+        Chat chat = new Chat();
+        chat.setContact(contact);
+        Chats.get().getChats().add(chat);
+    }
+
+    private void createChats(ArrayList<String> users)
+    {
+        for (int i = 0; i < users.size(); i++)
+        {
+            if (!Chats.get().chatExists(users.get(i)))
+            {
+                createChat(users.get(i));
+            }
+        }
     }
 }

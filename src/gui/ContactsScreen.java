@@ -1,35 +1,42 @@
 package gui;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 
-import java.net.Socket;
 import java.util.ArrayList;
-import java.util.List;
 
 import javax.swing.JFrame;
 import javax.swing.JList;
 import javax.swing.JScrollPane;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
+import javax.swing.DefaultListModel;
+
+import data.Account;
 
 public class ContactsScreen extends JFrame
 {
-    private static final int WIDTH = 500;
-    private static final int HEIGHT = 500;
-
+    private static final int WIDTH = 300;
+    private static final int HEIGHT = 300;
     private JScrollPane scrollPane;
     private JList<String> userListBox;
-
+    DefaultListModel model;
     private int status;
+    private ArrayList<String> onlineUsers;
 
-    private Socket socket;
+    private ChatScreen chatScreen;
 
-    public ContactsScreen(Socket socket)
+    public ContactsScreen(ChatScreen chatScreen)
     {
-        super("ChatMe");
+        super("Contacts");
         status = 0;
-        init(socket);
+        onlineUsers = new ArrayList<>();
+        model = new DefaultListModel();
+        this.chatScreen = chatScreen;
+        init();
     }
 
-    private void init(Socket socket)
+    private void init()
     {
         // General screen options
         setSize(WIDTH, HEIGHT);
@@ -38,18 +45,38 @@ public class ContactsScreen extends JFrame
         setResizable(false);
         setLocationRelativeTo(null);
 
-        List<String> userList = new ArrayList<>();
-        for (int index = 0; index < 100; index++) 
+        for (int i = 0; i < onlineUsers.size(); i++)
         {
-           userList.add("List Item " + index);
+            model.addElement(onlineUsers.get(i));
         }
-        userListBox = new JList<String>(userList.toArray(new String[userList.size()]));
+        userListBox = new JList(model);
+        userListBox.setBackground(Color.DARK_GRAY);
+        userListBox.setForeground(Color.LIGHT_GRAY);
+
+
+        userListBox.addListSelectionListener(new ListSelectionListener(){
+            @Override
+            public void valueChanged(ListSelectionEvent e) {
+                if (!userListBox.getValueIsAdjusting()) 
+                {
+                    if (userListBox.getSelectedValue() != null)
+                    {
+                        chatScreen.setTitle("Chat: " + Account.get().getName() + " - " + userListBox.getSelectedValue());
+                    }
+                    else
+                    {
+                        chatScreen.setTitle("Chat: " + Account.get().getName());
+                    }
+                    
+                    chatScreen.updateScreen(userListBox.getSelectedValue());
+                }
+            }
+        });
+
         scrollPane = new JScrollPane();
         scrollPane.setViewportView(userListBox);
         userListBox.setLayoutOrientation(JList.VERTICAL);
         add(scrollPane);
-
-        this.socket = socket;
     }
 
     public int getStatus() 
@@ -60,5 +87,31 @@ public class ContactsScreen extends JFrame
     public void setStatus(int status)
     {
         this.status = status;
+    }
+
+    public void setOnlineUsers(ArrayList<String> onlineUsers) 
+    {
+        model.clear();
+
+        ArrayList<String> onUsers = new ArrayList<String>(); 
+        for (int i = 0; i < onlineUsers.size(); i++)
+        {
+            if (!onlineUsers.get(i).equals(Account.get().getName()))
+            {
+                model.addElement(onlineUsers.get(i));
+                onUsers.add(onlineUsers.get(i));
+            }
+        }
+        this.onlineUsers = onUsers;
+    }
+
+    public ArrayList<String> getOnlineUsers() 
+    {
+        return onlineUsers;
+    }
+
+    public void selectChat(String contact)
+    {
+        userListBox.setSelectedValue(contact, true);
     }
 }

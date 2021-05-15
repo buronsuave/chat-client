@@ -9,11 +9,18 @@ import java.awt.event.ActionListener;
 import java.io.IOException;
 
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
-import javax.swing.JTextField;
+import javax.swing.border.LineBorder;
+import java.awt.Color;
 
-import org.json.JSONObject;     
+import org.json.JSONObject;
+
+import TestClass.JTextFieldHintUI;
+import TestClass.JPassFieldHintUI;
+import TestClass.RoundedJTextField;
+import TestClass.RoundedJPassField;   
 
 public class LoginScreen extends JFrame implements ActionListener
 {
@@ -21,8 +28,10 @@ public class LoginScreen extends JFrame implements ActionListener
     private static final int HEIGHT = 500;
 
     private JLabel nameLabel, passLabel;
-    private JTextField nameBox, passBox;
+    private RoundedJTextField nameBox;
     private JButton loginButton, signupButton;
+    private RoundedJPassField passBox;
+    private JCheckBox showPassword;
 
     private int status;
 
@@ -37,39 +46,76 @@ public class LoginScreen extends JFrame implements ActionListener
 
     private void init(Socket socket)
     {
+        
         // General screen options
         setSize(WIDTH, HEIGHT);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLayout(null);
         setResizable(false);
         setLocationRelativeTo(null);
+        getContentPane().setBackground(new Color(38, 38, 38));
 
-        // Controllers
+        // Form.
         nameLabel = new JLabel("Username");
-        nameLabel.setLocation(100, 100);
+        nameLabel.setForeground(Color.LIGHT_GRAY);
+        nameLabel.setLocation(200, 140);
         nameLabel.setSize(100, 25);
         add(nameLabel);
 
+        nameBox = new RoundedJTextField();
+        nameBox.setSelectedTextColor(Color.DARK_GRAY);
+        nameBox.setBounds(200, 170, 100, 30);
+        nameBox.setUI(new JTextFieldHintUI("Ur Username", Color.GRAY));
+        add(nameBox);
+
+        // p1 = new JPanel();
+        // p1.add(nameBox);
+        // tp = new JTabbedPane();
+        // tp.setBounds(200, 170, 100, 60);
+        // tp.add("Username", p1);
+        // add(tp);
+
         passLabel = new JLabel("Password");
-        passLabel.setLocation(100, 150);
+        passLabel.setForeground(Color.LIGHT_GRAY);
+        passLabel.setLocation(200, 200);
         passLabel.setSize(100, 25);
         add(passLabel);
 
-        nameBox = new JTextField();
-        nameBox.setBounds(200, 100, 100, 30);
-        add(nameBox);
-
-        passBox = new JTextField();
-        passBox.setBounds(200, 150, 100, 30);
+        passBox = new RoundedJPassField();
+        passBox.setSelectedTextColor(Color.DARK_GRAY);
+        passBox.setBounds(200, 230, 100, 30);
+        passBox.setUI(new JPassFieldHintUI("Ur Password", Color.GRAY));
+        passBox.setEchoChar('•');
         add(passBox);
 
+        showPassword = new JCheckBox("Show Password");
+        showPassword.setBounds(200, 270, 120, 30);
+        showPassword.setBackground(new Color(38, 38, 38));
+        showPassword.setForeground(Color.LIGHT_GRAY);
+        showPassword.setOpaque(true);        
+        showPassword.addActionListener(this);
+        add(showPassword);
+
+        // Controllers.
         loginButton = new JButton("Login");
-        loginButton.setBounds(100, 250, 100, 30);
+        loginButton.setFocusPainted(false);
+        loginButton.setContentAreaFilled(false);
+        loginButton.setOpaque(true);
+        loginButton.setBorder(new LineBorder(Color.BLACK));
+        loginButton.setBackground(Color.DARK_GRAY);
+        loginButton.setForeground(Color.LIGHT_GRAY);
+        loginButton.setBounds(270, 300, 100, 30);
         loginButton.addActionListener(this);
         add(loginButton);
 
         signupButton = new JButton("Signup");
-        signupButton.setBounds(250, 250, 100, 30);
+        signupButton.setFocusPainted(false);
+        signupButton.setContentAreaFilled(false);
+        signupButton.setOpaque(true);
+        signupButton.setBorder(new LineBorder(Color.BLACK));
+        signupButton.setBackground(Color.DARK_GRAY);
+        signupButton.setForeground(Color.LIGHT_GRAY);
+        signupButton.setBounds(150, 300, 100, 30);
         signupButton.addActionListener(this);
         add(signupButton);
 
@@ -103,13 +149,20 @@ public class LoginScreen extends JFrame implements ActionListener
                 System.out.println(e.getMessage());
             }
         }
+        else if(actionEvent.getSource() == showPassword){
+            if (showPassword.isSelected()) {
+                passBox.setEchoChar((char) 0);
+            } else {
+                passBox.setEchoChar('•');
+            }
+        }
     }
 
     private void onClickLogin() throws IOException
     {
         String name = nameBox.getText();
-        String pass = passBox.getText();
-
+        String pass = new String(passBox.getPassword());
+      
         Map<String, String> map = new HashMap<>();
         map.put("op", "1");
         map.put("name", name);
@@ -123,7 +176,7 @@ public class LoginScreen extends JFrame implements ActionListener
     private void onClickSignup() throws IOException
     {
         String name = nameBox.getText();
-        String pass = passBox.getText();
+        String pass = new String(passBox.getPassword());
 
         Map<String, String> map = new HashMap<>();
         map.put("op", "2");

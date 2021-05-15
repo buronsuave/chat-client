@@ -1,18 +1,18 @@
 package data;
 
-public class User 
+public class Account 
 {
-    private static User instance = null;
+    private static Account instance = null;
     
     private int id;
     private String name;
     private String pass;
 
-    public static User get()
+    public static Account get()
     {
         if (instance == null)
         {
-            instance = new User();
+            instance = new Account();
         }
         return instance;
     }
